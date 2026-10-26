@@ -1,0 +1,24 @@
+name: fix b6 019
+on:
+  push:
+    paths:
+      - ".github/workflows/fix-b6-019.yml"
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 .github/fix_b6_019.py
+      - name: commit corrected slice
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pages-parts/b6/019
+          if git diff --cached --quiet; then
+            echo "already corrected"
+            exit 0
+          fi
+          git commit -m "Publish the quest journal page."
+          git push origin HEAD:main
