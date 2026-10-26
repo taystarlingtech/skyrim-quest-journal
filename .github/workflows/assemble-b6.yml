@@ -1,0 +1,24 @@
+name: assemble b6 chunk
+on:
+  push:
+    paths:
+      - ".github/workflows/assemble-b6.yml"
+permissions:
+  contents: write
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 .github/assemble_b6.py
+      - name: commit assembled chunk
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add _next/static/chunks/2khxl0v1q4i6n.js
+          if git diff --cached --quiet; then
+            echo "already assembled"
+            exit 0
+          fi
+          git commit -m "Publish the quest journal page."
+          git push origin HEAD:main
