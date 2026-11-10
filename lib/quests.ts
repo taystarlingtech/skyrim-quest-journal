@@ -38,6 +38,40 @@ export function isOverdue(
   return day < todayISO(now, timeZone)
 }
 
+export function dueDay(due: RawTask["due"], timeZone: string): string | null {
+  if (!due) return null
+  if (due.datetime) {
+    const instant = Date.parse(due.datetime)
+    if (!Number.isNaN(instant)) return todayISO(new Date(instant), timeZone)
+  }
+  const day = due.date.slice(0, 10)
+  return /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : null
+}
+
+export function isDueToday(due: RawTask["due"], now: Date, timeZone: string): boolean {
+  const day = dueDay(due, timeZone)
+  return day !== null && day === todayISO(now, timeZone)
+}
+
+export type LedgerFilter = "open" | "today" | "done"
+
+export function questInLedger(
+  quest: Quest,
+  filter: LedgerFilter,
+  now: Date,
+  timeZone: string,
+): boolean {
+  const open = isQuestOpen(quest)
+  if (filter === "done") return !open
+  if (!open) return false
+  if (filter === "open") return true
+  if (isDueToday(quest.due, now, timeZone) || isOverdue(quest.due, now, timeZone)) return true
+  const today = todayISO(now, timeZone)
+  return quest.objectives.some(
+    (objective) => !objective.completed && (objective.dueDate === today || objective.overdue),
+  )
+}
+
 export function isQuestOpen(quest: Quest): boolean {
   if (quest.questClosed) return false
   // A parent task stays open in Todoist after its subtasks are checked.
@@ -213,6 +247,7 @@ export function buildJournal(input: BuildInput): JournalData {
           recurring: Boolean(child.due?.isRecurring),
           self: false,
           dueLabel: child.due?.string ? stripEmoji(child.due.string) : null,
+          dueDate: dueDay(child.due, zone),
           overdue: isOverdue(child.due, input.now, zone),
         }))
       : [
@@ -224,6 +259,7 @@ export function buildJournal(input: BuildInput): JournalData {
             recurring: Boolean(task.due?.isRecurring),
             self: true,
             dueLabel: null,
+            dueDate: dueDay(task.due, zone),
             overdue: false,
           },
         ]

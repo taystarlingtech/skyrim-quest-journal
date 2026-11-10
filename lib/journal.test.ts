@@ -5,6 +5,7 @@ import {
   adventurerRank,
   buildJournal,
   isQuestOpen,
+  questInLedger,
   sealQuest,
   setObjectiveCompleted,
 } from "./quests"
@@ -37,8 +38,8 @@ test("uses the repository name as the GitHub Pages base path", () => {
 
 test("strips task markup down to readable words", () => {
   assert.equal(plainText("**Buy** [milk](https://example.com) today"), "Buy milk today")
-  assert.equal(plainText("Make bed ✓ 🛏️"), "Make bed")
-  assert.equal(stripEmoji("House 🔧\nNext line"), "House\nNext line")
+  assert.equal(plainText("Make bed \u2713 \ud83d\udecf\ufe0f"), "Make bed")
+  assert.equal(stripEmoji("House \ud83d\udd27\nNext line"), "House\nNext line")
   const segments = parseProse("Bring a *cloak*.\nThen wait.")
   assert.deepEqual(
     segments.map((segment) => segment.type),
@@ -100,7 +101,7 @@ test("nests subtasks under quests and keeps overdue work", () => {
     mode: "live",
     tasks,
     projects,
-    sections: [{ id: "letters", name: "Letters 🎉", projectId: "work", order: 1 }],
+    sections: [{ id: "letters", name: "Letters \ud83c\udf89", projectId: "work", order: 1 }],
     adventurer: { name: "Taylor", karma: 3200, timezone: zone },
     completedToday: 1,
     completedThisMoon: 4,
@@ -121,6 +122,23 @@ test("nests subtasks under quests and keeps overdue work", () => {
   assert.equal(parent?.sectionName, "Letters")
   assert.equal(journal.stats.openQuests, 2)
   assert.equal(adventurerRank(3200).title, "Adept")
+})
+
+test("today keeps due and late quests, and fulfilled quests leave the open ledger", () => {
+  const journal = createDemoJournal(now)
+  const zone = journal.adventurer.timezone
+  const ids = (filter: "open" | "today" | "done") =>
+    journal.quests.filter((quest) => questInLedger(quest, filter, now, zone)).map((quest) => quest.id)
+  const today = ids("today")
+  assert.ok(today.includes("demo-wizard"))
+  assert.ok(today.includes("demo-wolves"))
+  assert.equal(today.includes("demo-watch"), false)
+  assert.equal(ids("open").includes("demo-banner"), true)
+  const sealed = setObjectiveCompleted(journal, "demo-banner", true)
+  const banner = sealed.quests.find((quest) => quest.id === "demo-banner")
+  assert.ok(banner)
+  assert.equal(questInLedger(banner, "open", now, zone), false)
+  assert.equal(questInLedger(banner, "done", now, zone), true)
 })
 
 test("checking a lone objective seals the quest", () => {
