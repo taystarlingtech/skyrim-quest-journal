@@ -50,7 +50,8 @@ A repository named `username.github.io` is served at the domain root. Any other 
 On the Quests page:
 
 - **↑ / ↓** move through the ledger
-- **Tab** marks the selected quest active
+- **Open / Today / Fulfilled** filter the ledger. Today includes anything due today or overdue. Checking a quest with no steps moves it to Fulfilled. A checked step stays on its quest, struck through, until you seal the quest.
+- **Tab** tracks the selected quest with an arrow. Tracking does not complete it.
 - **E** opens the task in Todoist
 - **Enter** seals the next open objective
 - **R** reads the tablets again

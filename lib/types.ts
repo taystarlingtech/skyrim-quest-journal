@@ -43,6 +43,7 @@ export type Objective = {
   recurring: boolean
   self: boolean
   dueLabel: string | null
+  dueDate: string | null
   overdue: boolean
 }
 
