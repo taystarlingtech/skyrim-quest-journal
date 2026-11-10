@@ -21,7 +21,14 @@ import {
   writeStoredSound,
   writeStoredToken,
 } from "@/lib/preferences"
-import { isQuestOpen, sealQuest, setObjectiveCompleted, unsealQuest } from "@/lib/quests"
+import {
+  isQuestOpen,
+  questInLedger,
+  sealQuest,
+  setObjectiveCompleted,
+  unsealQuest,
+  type LedgerFilter,
+} from "@/lib/quests"
 import { playSealSound } from "@/lib/sound"
 import { formatTamriel } from "@/lib/tamriel"
 import type { JournalData, Objective, Quest } from "@/lib/types"
@@ -31,6 +38,7 @@ const NO_QUESTS: Quest[] = []
 
 export function Journal() {
   const [tab, setTab] = useState<JournalTab>("quests")
+  const [ledger, setLedger] = useState<LedgerFilter>("open")
   const [pane, setPane] = useState<"list" | "detail">("list")
   const [data, setData] = useState<JournalData | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -137,10 +145,19 @@ export function Journal() {
   const quests = data?.quests ?? NO_QUESTS
   const questById = useMemo(() => new Map(quests.map((quest) => [quest.id, quest])), [quests])
   const selected = selectedId ? questById.get(selectedId) ?? null : null
-  const order = useMemo(
-    () => data?.outline.flatMap((group) => group.sections.flatMap((section) => section.questIds)) ?? [],
-    [data],
-  )
+  const order = useMemo(() => {
+    if (!data) return []
+    const moment = now ?? new Date()
+    const timeZone = data.adventurer.timezone
+    return data.outline.flatMap((group) =>
+      group.sections.flatMap((section) =>
+        section.questIds.filter((id) => {
+          const quest = questById.get(id)
+          return quest ? questInLedger(quest, ledger, moment, timeZone) : false
+        }),
+      ),
+    )
+  }, [data, ledger, now, questById])
 
   const displayActive =
     activeId && questById.has(activeId) ? activeId : data?.mode === "demo" ? DEMO_QUEST : null
@@ -157,19 +174,18 @@ export function Journal() {
   const toggleActive = useCallback(() => {
     const currentData = dataRef.current
     if (!currentData || !selectedId) return
-    setSessionActive((current) => {
-      const effective = current === undefined ? storedActive : current
-      const resolved =
-        effective && currentData.quests.some((quest) => quest.id === effective)
-          ? effective
-          : currentData.mode === "demo"
-            ? DEMO_QUEST
-            : null
-      const next = resolved === selectedId ? null : selectedId
-      if (currentData.mode === "live") writeStoredActive(next)
-      return next
-    })
-  }, [selectedId, storedActive])
+    const effective = sessionActive === undefined ? storedActive : sessionActive
+    const resolved =
+      effective && currentData.quests.some((quest) => quest.id === effective)
+        ? effective
+        : currentData.mode === "demo"
+          ? DEMO_QUEST
+          : null
+    const next = resolved === selectedId ? null : selectedId
+    if (currentData.mode === "live") writeStoredActive(next)
+    setSessionActive(next)
+    say(next ? "This quest is tracked. It is not completed." : "Nothing is tracked.")
+  }, [say, selectedId, sessionActive, storedActive])
 
   const chooseQuest = useCallback((id: string) => {
     setSelectedId(id)
@@ -407,6 +423,9 @@ export function Journal() {
                 data={data}
                 selectedId={selectedId}
                 activeId={displayActive}
+                filter={ledger}
+                now={now ?? new Date()}
+                onFilter={setLedger}
                 onSelect={chooseQuest}
                 onOpenSystem={() => changeTab("system")}
               />
@@ -451,6 +470,7 @@ export function Journal() {
                 quest={selected}
                 pendingId={pendingId}
                 notice={notice}
+                tracked={displayActive === selected?.id}
                 onBack={() => setPane("list")}
                 onShowMap={showMap}
                 onToggle={toggleObjective}
@@ -467,9 +487,15 @@ export function Journal() {
           <div className="hints">
             {tab === "quests" ? (
               <>
-                <button type="button" className="hint" onClick={toggleActive}>
+                <button
+                  type="button"
+                  className="hint"
+                  onClick={toggleActive}
+                  aria-pressed={Boolean(selected && displayActive === selected.id)}
+                  title="Track this quest in the ledger. Tracking does not complete it."
+                >
                   <kbd>Tab</kbd>
-                  <span>Toggle Active</span>
+                  <span>Track quest</span>
                 </button>
                 <button type="button" className="hint" onClick={showMap}>
                   <kbd>E</kbd>
