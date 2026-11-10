@@ -10,6 +10,7 @@ export function QuestDetail({
   notice,
   onBack,
   onShowMap,
+  tracked,
   onToggle,
   onSeal,
   onUnseal,
@@ -17,6 +18,7 @@ export function QuestDetail({
   quest: Quest | null
   pendingId: string | null
   notice: string | null
+  tracked: boolean
   onBack: () => void
   onShowMap: () => void
   onToggle: (objective: Objective) => void
@@ -32,6 +34,7 @@ export function QuestDetail({
   const due = dueSentence(quest)
   const hasSteps = quest.objectives.some((objective) => !objective.self)
   const allStepsDone = quest.objectives.every((objective) => objective.completed)
+  const objectives = [...quest.objectives].sort((a, b) => Number(a.completed) - Number(b.completed) || 0)
 
   return (
     <div className="detail-column">
@@ -44,6 +47,7 @@ export function QuestDetail({
         <h2 className="quest-heading">{quest.plainTitle}</h2>
         <Flourish flip />
       </div>
+      {tracked ? <p className="tracked-line">Tracked. The arrow in the ledger marks this quest.</p> : null}
       <Prose className="quest-prose" text={prose} />
       {due ? (
         <p className="due-line" data-overdue={quest.overdue}>
@@ -55,7 +59,7 @@ export function QuestDetail({
       ) : null}
       <ChapterRule>Objectives</ChapterRule>
       <ul className="objective-list">
-        {quest.objectives.map((objective) => (
+        {objectives.map((objective) => (
           <li key={objective.id}>
             <button
               type="button"
@@ -70,8 +74,11 @@ export function QuestDetail({
                 <DiamondMarker filled={objective.completed} />
               </span>
               <span>
-                <Prose text={objective.content} />
-                {objective.dueLabel ? <em className="objective-due"> — {objective.dueLabel}</em> : null}
+                <span className="objective-copy">
+                  <Prose text={objective.content} />
+                  {objective.dueLabel ? <em className="objective-due"> — {objective.dueLabel}</em> : null}
+                </span>
+                {objective.completed ? <em className="objective-done">Fulfilled</em> : null}
               </span>
             </button>
           </li>
