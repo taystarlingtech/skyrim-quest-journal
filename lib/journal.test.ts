@@ -38,8 +38,8 @@ test("uses the repository name as the GitHub Pages base path", () => {
 
 test("strips task markup down to readable words", () => {
   assert.equal(plainText("**Buy** [milk](https://example.com) today"), "Buy milk today")
-  assert.equal(plainText("Make bed \u2713 \ud83d\udecf\ufe0f"), "Make bed")
-  assert.equal(stripEmoji("House \ud83d\udd27\nNext line"), "House\nNext line")
+  assert.equal(plainText("Make bed \u2713 \uD83D\uDECF\uFE0F"), "Make bed")
+  assert.equal(stripEmoji("House \uD83D\uDD27\nNext line"), "House\nNext line")
   const segments = parseProse("Bring a *cloak*.\nThen wait.")
   assert.deepEqual(
     segments.map((segment) => segment.type),
@@ -101,7 +101,7 @@ test("nests subtasks under quests and keeps overdue work", () => {
     mode: "live",
     tasks,
     projects,
-    sections: [{ id: "letters", name: "Letters \ud83c\udf89", projectId: "work", order: 1 }],
+    sections: [{ id: "letters", name: "Letters \uD83C\uDF89", projectId: "work", order: 1 }],
     adventurer: { name: "Taylor", karma: 3200, timezone: zone },
     completedToday: 1,
     completedThisMoon: 4,
